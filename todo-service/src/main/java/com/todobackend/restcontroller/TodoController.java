@@ -7,12 +7,20 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.List;
 
+/**
+ * REST controller for managing todo items.
+ */
 @RestController
 @RequestMapping("/api/todos")
+@Validated
 public class TodoController {
 
     private final TodoService todoService;
@@ -34,8 +42,9 @@ public class TodoController {
             @ApiResponse(responseCode = "400", description = "Invalid input")
     })
     @PostMapping
-    public Todo addTodo(@RequestBody Todo todo) {
-        return todoService.addTodo(todo);
+    public ResponseEntity<Todo> addTodo(@Valid @RequestBody Todo todo) {
+        Todo addedTodo = todoService.addTodo(todo);
+        return new ResponseEntity<>(addedTodo, HttpStatus.CREATED);
     }
 
     /**
@@ -48,13 +57,19 @@ public class TodoController {
     @Operation(summary = "Update an existing todo item")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully updated todo"),
-            @ApiResponse(responseCode = "404", description = "Todo not found")
+            @ApiResponse(responseCode = "404", description = "Todo not found"),
+            @ApiResponse(responseCode = "400", description = "Invalid input")
     })
     @PutMapping("/{id}")
-    public Todo updateTodo(
+    public ResponseEntity<Todo> updateTodo(
             @Parameter(description = "ID of the todo item to be updated") @PathVariable Long id,
-            @RequestBody Todo todo) {
-        return todoService.updateTodo(id, todo);
+            @Valid @RequestBody Todo todo) {
+        Todo updatedTodo = todoService.updateTodo(id, todo);
+        if (updatedTodo != null) {
+            return new ResponseEntity<>(updatedTodo, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 
     /**
@@ -68,8 +83,9 @@ public class TodoController {
             @ApiResponse(responseCode = "404", description = "Todo not found")
     })
     @DeleteMapping("/{id}")
-    public void deleteTodo(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteTodo(@PathVariable Long id) {
         todoService.deleteTodo(id);
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -82,8 +98,9 @@ public class TodoController {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved todos")
     })
     @GetMapping
-    public List<Todo> getAllTodos() {
-        return todoService.getAllTodos();
+    public ResponseEntity<List<Todo>> getAllTodos() {
+        List<Todo> todos = todoService.getAllTodos();
+        return new ResponseEntity<>(todos, HttpStatus.OK);
     }
 
     /**
@@ -98,8 +115,9 @@ public class TodoController {
             @ApiResponse(responseCode = "404", description = "Todo not found")
     })
     @GetMapping("/{id}")
-    public Todo getTodoById(@PathVariable Long id) {
-        return todoService.getTodoById(id);
+    public ResponseEntity<Todo> getTodoById(@PathVariable Long id) {
+        Todo todo = todoService.getTodoById(id);
+        return todo != null ? new ResponseEntity<>(todo, HttpStatus.OK) : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     /**
@@ -110,7 +128,8 @@ public class TodoController {
             @ApiResponse(responseCode = "204", description = "Successfully deleted all todos")
     })
     @DeleteMapping
-    public void deleteAllTodos() {
+    public ResponseEntity<Void> deleteAllTodos() {
         todoService.deleteAllTodos();
+        return ResponseEntity.noContent().build();
     }
 }
